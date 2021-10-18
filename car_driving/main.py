@@ -10,11 +10,14 @@ env = gym.make(env_name)
 env = DummyVecEnv([lambda:env])
 PPO_Path = os.path.join("Training", "Models", "PPO")
 log_path = os.path.join("Training", "Logs")
-model = PPO("CnnPolicy", env, verbose=1, tensorboard_log=log_path)
-model = PPO.load(PPO_Path, env)
-model.learn(total_timesteps=2000000)
-model.save(PPO_Path)
-evaluate_policy(model, env, n_eval_episodes = 10, render = True)
+
+
+
+for x in range(1000):
+    model = PPO.load(PPO_Path, env)
+    model.learn(total_timesteps=1000)
+    model.save(PPO_Path)
+    evaluate_policy(model,  env, n_eval_episodes = 1, render = True)
 
     
     
