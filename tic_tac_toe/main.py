@@ -16,24 +16,42 @@ from testing_strat import *
 
 
 
-
+clock = pygame.time.Clock()
+fenster = pygame.display.set_mode([1280, 720])
+fenster.fill((100,100,100))
 
 class TicTacToeEnv(Env):
 
+    """
+     Envirnoement Tic Tac Toe
+    """
     def __init__(self):
+        """
+            Initialisation des espaces d'observation et d'actn pour L'IA
+        """
         self.action_space = Discrete(9)
         self.observation_space = Box(low=np.array([0,0,0,0,0,0,0,0,0]), high=np.array([0,0,0,0,0,0,0,0,0]))
         self.state = [0]*9
+        self.time = 5
 
 
     def check_if_win_stoppped(self, action):
+        """
+        Verification de si la nouvelle action a arreter une vicotire
+
+        Args:
+            action (int): place joue
+
+        Returns:
+            [Bool]: [True si une victoire arreter, False si non]
+        """
 
         checks = [(0,1,2),(3,4,5),(6,7,8),(0,4,8),(6,4,3),(0,3,6),(1,4,7),(2,5,8)]
 
         for x in checks:
             amount_of_2 = 0
             for y in x:
-                if self.self.state[y] == 2:
+                if self.state[y] == 2:
                     amount_of_2 += 1
             if amount_of_2 >= 2 and action in x:
 
@@ -44,6 +62,14 @@ class TicTacToeEnv(Env):
 
         
     def check_win(self):
+
+        """
+        Verifie le tableu, si 3 se suivent alors victoire
+            
+
+        Returns:
+            [Boolean, Int]: [Si victoire et le gagnant]
+        """
         win_state = [
                     [self.state[0], self.state[1], self.state[2]],
                     [self.state[3], self.state[4], self.state[5]],
@@ -64,23 +90,85 @@ class TicTacToeEnv(Env):
             
                 
 
-                    
-    def step(self, action ): #player
-        
+    def isValid(self, action):
+        """Verifie si un mouvement est valide
+
+        Args:
+            action (Int): Case jouee
+
+        Returns:
+            Bool: True si Mouvement est autorise et False si non
+        """
+        if self.state[action] == 0:
+            return True
+
+        return False
+
+
+
+
+
+    def reward(self, action):
+        """
+        Fonction reward qui calcule le reward donne a chaque mouvement.
+        Verification si le mouvement est valide, si vicotire arrete, si victoire ou perte ou matche nul
+        + Nombre de couts joue (empeche de tourner a jamais)
+
+        Args:
+            action (Int): Case jouee
+
+        Returns:
+            Int, Bool : Reward et Si fin de partie ou pas
+        """
         reward = -10
 
-        if 0 not in self.state:
-            print("draw!")
-            reward += 150
-            return self.state, reward, True, {}
+        """if self.time <= 0:
+            reward -= 1000
+            return reward, True"""
+        if self.check_if_win_stoppped(action):
+            reward += 110
+        if self.check_win()[1] == 1:
+            reward += 110
+            return reward, True
+        elif self.check_win()[1] == 2:
+            reward -= 1000
+            return reward, True
 
-        if self.state[action] == 2 or self.state[action] == 1:
-            return self.state, -100, False, {}
+        if 0 not in self.state and self.check_win[1] == 0:
+            reward += 210
+            return reward, True
+
+
+        return reward, False
+
+
+
+    def step(self, action, player ): #player
+        """
         
-        self.state[action] = 1
+        Fonction utilise a chaque etape
+
+        Args:
+            action (Int): Case jouee
+
+        Returns:
+             List, Int, Bool, Dict: State, Reward, Done, Info
+        """
+        self.time -= 1
+        reward = self.reward(action)
         
-        empty_cells = [x for x in range(len(self.state)) if self.state[x] == 0 ]
-        
+        #Check for illegal Move
+        """if not self.isValid(action):
+            return self.state, -1000, True, {}"""
+
+
+        #AI move
+        self.state[action] = player
+
+
+        return self.state, reward[0], reward[1], {}
+
+        """empty_cells = [x for x in range(len(self.state)) if self.state[x] == 0 ]
         #Non AI does the move here
         possible_moves = [x for x in range(len(self.state)) if self.state[x] != 0 ]
         if len(empty_cells) >= 8:
@@ -89,26 +177,11 @@ class TicTacToeEnv(Env):
             state_grid = [[self.state[0], self.state[1], self.state[2]],[self.state[3], self.state[4], self.state[5]], [self.state[6], self.state[7], self.state[8]]]
             move = minimax(state_grid, abs(len(empty_cells)), 2)
             move_choice = (move[0]*3 + move[1])
-            self.state[move_choice] = 2
-
-
-        someone_one = self.check_win()[0]
-        who_won = self.check_win()[1]
+            self.state[move_choice] = 2"""
 
         
-            
-        if not someone_one:
-            reward += 30
-            return self.state, reward, False, {}
 
-        if someone_one:
-            if who_won == 1:
-                reward += 150
-                return self.state, reward, True, {}
-            elif who_won == 2:
-                reward -= 1000
-                return self.state, reward, True, {}
-        
+
 
     
 
@@ -117,9 +190,9 @@ class TicTacToeEnv(Env):
         
         board = f"""
         \r 
-            {self.self.state[0]}, {self.self.state[1]}, {self.self.state[2]}
-            {self.self.state[3]}, {self.self.state[4]}, {self.self.state[5]}
-            {self.self.state[6]}, {self.self.state[7]}, {self.self.state[8]}
+            {self.state[0]}, {self.state[1]}, {self.state[2]}
+            {self.state[3]}, {self.state[4]}, {self.state[5]}
+            {self.state[6]}, {self.state[7]}, {self.state[8]}
         \r
         """
 
@@ -128,9 +201,9 @@ class TicTacToeEnv(Env):
         pos = {0:(500, 300),1:(610, 300),2:(720, 300),3:(500, 410),4:(610, 410),5:(720,410),6:(500,520),7:(610,520),8:(720,520)}
         for x in range(9):
 
-                if self.self.state[x] == 0:
+                if self.state[x] == 0:
                     pygame.draw.rect(fenster, (255,255,255), pygame.Rect(pos[x][0], pos[x][1], 100, 100))
-                elif self.self.state[x] == 1:
+                elif self.state[x] == 1:
                     pygame.draw.rect(fenster, (0,0,255), pygame.Rect(pos[x][0], pos[x][1], 100, 100))
                 else:
                     pygame.draw.rect(fenster, (255,0,0), pygame.Rect(pos[x][0], pos[x][1], 100, 100))
@@ -140,20 +213,11 @@ class TicTacToeEnv(Env):
     def reset(self):
         self.state = [0] * 9
         self.done = False
+        self.time = 5
         return self.state
 
     def _get_obs(self):
         return tuple(self.board)
-
-    
-
-
-"""
-clock = pygame.time.Clock()
-fenster = pygame.display.set_mode([1280, 720])
-fenster.fill((100,100,100))
-
-"""
 
 
 def player_action(click):
@@ -171,46 +235,18 @@ def player_action(click):
 
 
 
+
+
 env = TicTacToeEnv()
 log_path = os.path.join("Training", "Logs")
-PPO_PATH = os.path.join("Training", "Saved Models", "PPO_New_Rules")
-eval_callback = EvalCallback(env, eval_freq = 10000, best_model_save_path=PPO_PATH, verbose=1)
-model = PPO.load(PPO_PATH, env)#PPO("MlpPolicy", env, verbose=1, tensorboard_log = log_path)
-model.learn(total_timesteps=2000000, callback = eval_callback)
+PPO_PATH = os.path.join("Training", "Saved Models", "PPO_New_Check_With_Time")
+save_path = os.path.join("Training", "Saved Models", "best_model")
+stop_callback = StopTrainingOnRewardThreshold(reward_threshold = 50, verbose = 1)
+eval_callback = EvalCallback(env, callback_on_new_best = stop_callback, eval_freq = 10000, best_model_save_path=save_path, verbose=1)
+model = PPO.load(save_path, env) #PPO("MlpPolicy", env, verbose=1, tensorboard_log = log_path) #
+"""""model.learn(total_timesteps=200000, callback = eval_callback)
+model.save(PPO_PATH)"""
 
-"""running = True
-import time
-obs = env.reset()
-player_chose = False
-done = False
-while running:
-    clock.tick(5)
-    env.render()
-    
-    if not done:
-        if player_chose:
-            time.sleep(1)
-            action, _ = model.predict(obs)
-            obs, reward, done, info = env.step(action, 1)
-            env.render()
-            player_chose = False
-        else:
-
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                if event.type == pygame.MOUSEBUTTONDOWN :
-                    pos = pygame.mouse.get_pos()
-                    player_move = player_action(pos)
-                    obs, reward, done, info = env.step(player_move,2)
-                    player_chose = True
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-    
-
-"""
 
 
 
