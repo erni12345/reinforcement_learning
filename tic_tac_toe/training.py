@@ -1,4 +1,4 @@
-import pygame
+from typing import cast
 from numpy.lib.stride_tricks import DummyArray
 from gym import Env
 from gym.spaces import Discrete, Box
@@ -11,7 +11,24 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnRewardThreshold
 from stable_baselines3.common.env_checker import check_env
-import time
+import pygame
+from stable_baselines3.common.vec_env import VecFrameStack
+
+
+#from testing_strat import *
+
+
+
+memo_iz_first = {}
+memo_iz_second = {}
+
+
+clock = pygame.time.Clock()
+fenster = pygame.display.set_mode([800, 800])
+fenster.fill((0,0,0))
+
+X_Image = pygame.image.load("X.png").convert_alpha()
+O_Image = pygame.image.load("O.png").convert_alpha()
 
 
 
@@ -267,7 +284,7 @@ class TicTacToeEnv(Env):
 
     def make_best_move(self):
 
-        probs = self.get_probs(self.state)
+        probs = get_probs_other(self.state)
         maxx = -100
         best = -1
     
@@ -310,13 +327,51 @@ class TicTacToeEnv(Env):
         if not self.isValid(action):
             return self.state, -1, True, {}
 
+        self.time -= 0 #1
+
+        #AI move (THAT IS BEING TRAINED)
         copy = self.state[::]
-        self.state[action] = player 
+        self.state[action] = player #1
         reward = self.reward()
 
+        """if not reward[1]:
+            win_prob_dict = self.get_probs(copy)
+            made_best = self.made_the_best_move(win_prob_dict, action)
+            if made_best[0]:
+                reward = (made_best[1], False)"""
         if reward[1]:
             return self.state, reward[0], reward[1], {}
 
+        """#AI move that isnt being trained
+        if self.vs_cpu:
+            new_state = []
+            for x in self.state:
+                if x == 1:
+                    new_state.append(2)
+                elif x == 2:
+                    new_state.append(1)
+                else:
+                    new_state.append(x)
+            
+            bot_action, _ = bot.predict(new_state)
+            if self.state[bot_action] == 0:
+                self.state[bot_action] = 2
+            else:
+                self.time += 1
+                self.state[action] = 0
+
+        elif self.vs_cpu == "random":
+            bot_action = random.choice(empty_cells(self.state))
+            self.state[bot_action] = 2
+        else:
+            bot_action = self.make_best_move()
+            if self.state[bot_action] == 0:
+                self.state[bot_action] = 2
+            else:
+                self.time += 1
+                self.state[action] = 0
+
+        reward = self.reward()"""
 
         return self.state, reward[0], reward[1], {}
 
@@ -330,8 +385,6 @@ class TicTacToeEnv(Env):
         """
         Fonction render, prend en charge l'interface du jeu. Mise a jours des mouvements et elements. 
         """
-        pygame.draw.rect(fenster, (255,255,255), pygame.Rect(210,55, 100, 60))
-        pygame.draw.rect(fenster, (255,255,255), pygame.Rect(520, 55, 100, 60))
         pos = {0:(240, 300),1:(350, 300),2:(460, 300),3:(240, 410),4:(350, 410),5:(460,410),6:(240,520),7:(350,520),8:(460,520)}
         for x in range(9):
 
@@ -375,30 +428,16 @@ class TicTacToeEnv(Env):
 
 
 
-memo_iz_first = {}
-memo_iz_second = {}
-
-
-clock = pygame.time.Clock()
-fenster = pygame.display.set_mode([800, 800])
-fenster.fill((0,0,0))
-
-X_Image = pygame.image.load("X.png").convert_alpha()
-O_Image = pygame.image.load("O.png").convert_alpha()
-
-
-
-env = TicTacToeEnv()
-vs_bot = os.path.join("Training", "Saved Models", "vs_bot_2_8", "best_model")
-model = PPO.load(vs_bot, env)#PPO("MlpPolicy", env, verbose=1, tensorboard_log = log_path)
-running = True
-
-
-
-
-
 
 def player_action(click):
+    """Fonction qui determine dans quelle case l'utilisateur a touche
+
+    Args:
+        click (tuple): (x,y) position
+
+    Returns:
+        int: lieu
+    """
     x, y = click
     check = {0:(240, 300),1:(350, 300),2:(460, 300),3:(240, 410),4:(350, 410),5:(460,410),6:(240,520),7:(350,520),8:(460,520)}
 
@@ -408,17 +447,74 @@ def player_action(click):
     
     return -1
 
-def ai_action(obs, mode):
-
-    if mode == "IMPOSSIBLE":
-        return env.make_best_move()
-    else:
-        move = model.predict(obs)
-        return move
 
 
 
-pygame.font.init()
-myfont = pygame.font.SysFont('Comic Sans MS', 30)
-textsurface = myfont.render('Some Text', False, (255, 0, 0))
-fenster.blit(textsurface,(100,110))
+"""log_path = os.path.join("Training", "Logs")
+vs_random = os.path.join("Training", "Saved Models", "vs_random")
+vs_bot = os.path.join("Training", "Saved Models", "vs_bot_2_7_2", "best_model")
+vs_bot_save_best = os.path.join("Training", "Saved Models", "vs_bot_3")
+
+env = TicTacToeEnv()
+bot = PPO.load(vs_bot, env)
+model = PPO.load(vs_bot, env, learning_rate = 0.0001) #("MlpPolicy", env, verbose = 1, tensorboard_log=log_path, learning_rate = 0.0001)
+stop_callback = StopTrainingOnRewardThreshold(reward_threshold = 1.5, verbose = 1)
+eval_callback = EvalCallback(env, callback_on_new_best = stop_callback, eval_freq = 10000, best_model_save_path=vs_bot_save_best, verbose=1)
+
+model.learn(1000000, callback = eval_callback)"""
+
+
+
+
+
+
+
+
+"""
+model = PPO.load(new_gen_path, env)
+model.learn(100)"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+
+        
+
+
+        
+
