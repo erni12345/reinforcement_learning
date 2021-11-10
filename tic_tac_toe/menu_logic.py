@@ -40,10 +40,15 @@ class Game():
             PLAYER_TURN = True
             AI_TURN = False
             DONE = False
-            IMPOSSIBLE = False
+            IMPOSSIBLE = True
+            font = pygame.font.Font(self.font_name,25) 
+            normal = font.render('Normal', True, self.YELLOW)
+            impossible = font.render('Impossible', True, self.YELLOW)
+            self.window.blit(normal, (200, 65))
+            self.window.blit(impossible, (500, 65))
             
             while self.playing:
-
+                
                 if DONE:
                     obs = env.reset()
                     DONE = False

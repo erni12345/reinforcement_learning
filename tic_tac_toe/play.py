@@ -330,8 +330,6 @@ class TicTacToeEnv(Env):
         """
         Fonction render, prend en charge l'interface du jeu. Mise a jours des mouvements et elements. 
         """
-        pygame.draw.rect(fenster, (255,255,255), pygame.Rect(210,55, 100, 60))
-        pygame.draw.rect(fenster, (255,255,255), pygame.Rect(520, 55, 100, 60))
         pos = {0:(240, 300),1:(350, 300),2:(460, 300),3:(240, 410),4:(350, 410),5:(460,410),6:(240,520),7:(350,520),8:(460,520)}
         for x in range(9):
 
