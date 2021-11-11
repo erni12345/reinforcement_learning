@@ -1,4 +1,14 @@
-from typing import cast
+"""
+
+Ficher pour entrainer le model d'intelligence Artficielle
+
+Utilisation de l'algorithm PPO pour entrainer
+
+"""
+
+
+
+#importations
 from numpy.lib.stride_tricks import DummyArray
 from gym import Env
 from gym.spaces import Discrete, Box
@@ -15,100 +25,101 @@ import pygame
 from stable_baselines3.common.vec_env import VecFrameStack
 
 
-#from testing_strat import *
-
 
 
 memo_iz_first = {}
 memo_iz_second = {}
 
 
-clock = pygame.time.Clock()
-fenster = pygame.display.set_mode([800, 800])
-fenster.fill((0,0,0))
-
-X_Image = pygame.image.load("X.png").convert_alpha()
-O_Image = pygame.image.load("O.png").convert_alpha()
-
-
-
 
 def empty_cells(state):
-        """
-        Each empty cell will be added into cells' list
-        :param state: the state of the current board
-        :return: a list of empty cells
-        """
-        cells = []
+    """Function qui renvoie la liste de case libres
 
-        for x in range(9):
-            if state[x] == 0:
-                cells.append(x)
+    Args:
+        state (list): matrice du jeu
 
-        return cells
+    Returns:
+        list: liste de cases libres
+    """
+    cells = []
+
+    for x in range(9):
+        if state[x] == 0:
+            cells.append(x)
+
+    return cells
 
 
 
 def check_win(board):
 
-        """
-        Verifie le tableu, si 3 se suivent alors victoire
-            
+    """
+    Verifie le tableu, si 3 se suivent alors victoire
+        
 
-        Returns:
-            [Boolean, Int]: [Si victoire et le gagnant]
-        """
-        win_state = [
-                    [board[0], board[1], board[2]],
-                    [board[3], board[4], board[5]],
-                    [board[6], board[7], board[8]],
-                    [board[0], board[4], board[8]],
-                    [board[6], board[4], board[2]],
-                    [board[0], board[3], board[6]],
-                    [board[1], board[4], board[7]],
-                    [board[2], board[5], board[8]],
-                    ]
-        if [1, 1, 1] in win_state:
-            return True, 1
+    Returns:
+        [Boolean, Int]: [Si victoire et le gagnant]
+    """
+    win_state = [
+                [board[0], board[1], board[2]],
+                [board[3], board[4], board[5]],
+                [board[6], board[7], board[8]],
+                [board[0], board[4], board[8]],
+                [board[6], board[4], board[2]],
+                [board[0], board[3], board[6]],
+                [board[1], board[4], board[7]],
+                [board[2], board[5], board[8]],
+                ]
+    if [1, 1, 1] in win_state:
+        return True, 1
 
-        if [2,2,2] in win_state:
-            return True, -1
-        if 0 not in board:
-            return True, 0
-        else:
-            return False, 0
+    if [2,2,2] in win_state:
+        return True, -1
+    if 0 not in board:
+        return True, 0
+    else:
+        return False, 0
 
 
 def check_win_other(board):
 
-        """
-        Verifie le tableu, si 3 se suivent alors victoire
-            
+    """
+    Verifie le tableu, si 3 se suivent alors victoire
+    Verification pour joueur 2 (utilise pour entrainer IA contre ancienne version d'elle meme)
 
-        Returns:
-            [Boolean, Int]: [Si victoire et le gagnant]
-        """
-        win_state = [
-                    [board[0], board[1], board[2]],
-                    [board[3], board[4], board[5]],
-                    [board[6], board[7], board[8]],
-                    [board[0], board[4], board[8]],
-                    [board[6], board[4], board[2]],
-                    [board[0], board[3], board[6]],
-                    [board[1], board[4], board[7]],
-                    [board[2], board[5], board[8]],
-                    ]
-        if [1, 1, 1] in win_state:
-            return True, -1
+    Returns:
+        [Boolean, Int]: [Si victoire et le gagnant]
+    """
+    win_state = [
+                [board[0], board[1], board[2]],
+                [board[3], board[4], board[5]],
+                [board[6], board[7], board[8]],
+                [board[0], board[4], board[8]],
+                [board[6], board[4], board[2]],
+                [board[0], board[3], board[6]],
+                [board[1], board[4], board[7]],
+                [board[2], board[5], board[8]],
+                ]
+    if [1, 1, 1] in win_state:
+        return True, -1
 
-        if [2,2,2] in win_state:
-            return True, 1
-        if 0 not in board:
-            return True, 0
-        else:
-            return False, 0
+    if [2,2,2] in win_state:
+        return True, 1
+    if 0 not in board:
+        return True, 0
+    else:
+        return False, 0
 
 def see_probs_recur_other(board, depth, turn):
+
+    """Function recursive qui calcul la propabilite de victoire d'un mouvement
+       Utilise pour aller contre l'ordinateur
+
+       utilise la programation dynamique afin de ne pas refaire d'etapes
+
+    Returns:
+        float : prob de gagner [0;1]
+    """
 
     if str(board) in memo_iz_second:
         return memo_iz_second[str(board)]
@@ -140,6 +151,14 @@ def see_probs_recur_other(board, depth, turn):
 
 
 def get_probs_other(state):
+    """Fonction qui renvoie la probabilite de gagner de chaque mouvement possible
+        Pour aller contre ordinateur
+    Args:
+        state (list): matrice qui represent le tableau 
+
+    Returns:
+        dict: posibilite et pourcentage de victoire
+    """
     proba_dict = {}
     for x in empty_cells(state):
         copy = state[::]
@@ -163,7 +182,13 @@ class TicTacToeEnv(Env):
         self.time = 4
 
     def see_probs_recur(self, board, depth, turn):
+        """Function recursive qui calcul la propabilite de victoire d'un mouvement
 
+            utilise la programation dynamique afin de ne pas refaire d'etapes
+
+            Returns:
+                float : prob de gagner [0;1]
+        """
         if str(board) in memo_iz_first:
             return memo_iz_first[str(board)]
 
@@ -194,6 +219,13 @@ class TicTacToeEnv(Env):
 
 
     def get_probs(self, state):
+        """Fonction qui renvoie la probabilite de gagner de chaque mouvement possible
+        Args:
+            state (list): matrice qui represent le tableau 
+
+        Returns:
+            dict: posibilite et pourcentage de victoire
+        """
         proba_dict = {}
         for x in empty_cells(state):
             copy = state[::]
@@ -283,6 +315,12 @@ class TicTacToeEnv(Env):
 
 
     def make_best_move(self):
+        """
+        Foction qui calcul le meilleur mouvement
+
+        Returns:
+            Int : case ou jouer
+        """
 
         probs = get_probs_other(self.state)
         maxx = -100
@@ -295,6 +333,15 @@ class TicTacToeEnv(Env):
         return best
 
     def made_the_best_move(self, probs, action):
+        """fonction qui verifie si le meilleur mouvement a etait fait
+
+        Args:
+            probs (Dict): dictionaires de mouvements et probabilites
+            action (Int): mouvement jouee par l'IA
+
+        Returns:
+            Bool, float : vrai ou faux si meilelr mouvement, prob de ganger
+        """
         play = -1
         max_play = -1
         for x in probs:
@@ -307,10 +354,16 @@ class TicTacToeEnv(Env):
 
         return (False, -1)
 
-    def step(self, action, player): #player
+    def step(self, action): #player
         """
         
         Fonction utilise a chaque etape
+
+        1. Verifcation du mouvement
+        2. Calcul du "reward" pour le mouvement fait
+        3. Faire le mouvement + verification si victoire
+        4. Calcul du mouvement de l'adverssaire
+        5. Verification de victoire
 
         Args:
             action (Int): Case jouee
@@ -327,22 +380,22 @@ class TicTacToeEnv(Env):
         if not self.isValid(action):
             return self.state, -1, True, {}
 
-        self.time -= 0 #1
+        self.time -= 1
 
         #AI move (THAT IS BEING TRAINED)
         copy = self.state[::]
-        self.state[action] = player #1
+        self.state[action] = 1
         reward = self.reward()
-
-        """if not reward[1]:
+        win = reward[1]
+        reward = reward[0]
+        if not win:
             win_prob_dict = self.get_probs(copy)
-            made_best = self.made_the_best_move(win_prob_dict, action)
-            if made_best[0]:
-                reward = (made_best[1], False)"""
-        if reward[1]:
-            return self.state, reward[0], reward[1], {}
+            reward = win_prob_dict[action]
+    
+        if win:
+            return self.state, reward, win, {}
 
-        """#AI move that isnt being trained
+        #AI move that isnt being trained
         if self.vs_cpu:
             new_state = []
             for x in self.state:
@@ -371,54 +424,27 @@ class TicTacToeEnv(Env):
                 self.time += 1
                 self.state[action] = 0
 
-        reward = self.reward()"""
+        reward_cpu = self.reward()
 
-        return self.state, reward[0], reward[1], {}
+        return self.state, reward, reward_cpu[1], {}
 
-
-
-    
-
-
-    def render(self):
-
-        """
-        Fonction render, prend en charge l'interface du jeu. Mise a jours des mouvements et elements. 
-        """
-        pos = {0:(240, 300),1:(350, 300),2:(460, 300),3:(240, 410),4:(350, 410),5:(460,410),6:(240,520),7:(350,520),8:(460,520)}
-        for x in range(9):
-
-                if self.state[x] == 0:
-                    pass
-                elif self.state[x] == 1:
-                    pygame.draw.rect(fenster, (255,255,255), pygame.Rect(pos[x][0], pos[x][1], 100, 100))
-                    fenster.blit(X_Image, (pos[x][0], pos[x][1]))
-                else:
-                    pygame.draw.rect(fenster, (255,255,255), pygame.Rect(pos[x][0], pos[x][1], 100, 100))
-                    fenster.blit(O_Image, (pos[x][0], pos[x][1]))
-
-
-        pygame.display.update()
 
     def reset(self):
         """Recommence le Jeu
+            Determine si l'IA commence premier ou deuxieme et s'il joue contre un ancienne version,
+            ou le meiller mouvement ou un contre aleatoire
 
         Returns:
             state: matrice du jeu
         """
-        fenster.fill((0,0,0))
-        pygame.draw.rect(fenster, (255,255,255), pygame.Rect(340,300, 10, 330))
-        pygame.draw.rect(fenster, (255,255,255), pygame.Rect(450, 300, 10, 330))
-        pygame.draw.rect(fenster, (255,255,255), pygame.Rect(240, 400, 330, 10))
-        pygame.draw.rect(fenster, (255,255,255), pygame.Rect(240, 510, 330, 10))
         self.state = [0] * 9
         self.done = False
         self.time = 5
-        """self.vs_cpu = random.choice([True, False, False, False, "random", "random"])
+        self.vs_cpu = random.choice([True, False, False, False, "random", "random"])
         should = random.randint(0,1)
         if should == 1:
             self.time = 4
-            self.state[random.randint(0,8)] = 2"""
+            self.state[random.randint(0,8)] = 2
         return self.state
 
     def _get_obs(self):
@@ -429,50 +455,31 @@ class TicTacToeEnv(Env):
 
 
 
-def player_action(click):
-    """Fonction qui determine dans quelle case l'utilisateur a touche
 
-    Args:
-        click (tuple): (x,y) position
-
-    Returns:
-        int: lieu
-    """
-    x, y = click
-    check = {0:(240, 300),1:(350, 300),2:(460, 300),3:(240, 410),4:(350, 410),5:(460,410),6:(240,520),7:(350,520),8:(460,520)}
-
-    for i in check:
-        if check[i][0] < x < check[i][0] + 110 and check[i][1] < y < check[i][1]+110:
-            return i
-    
-    return -1
-
-
-
-
-"""log_path = os.path.join("Training", "Logs")
+"""
+Entrainement
+"""
+log_path = os.path.join("Training", "Logs")
 vs_random = os.path.join("Training", "Saved Models", "vs_random")
-vs_bot = os.path.join("Training", "Saved Models", "vs_bot_2_7_2", "best_model")
-vs_bot_save_best = os.path.join("Training", "Saved Models", "vs_bot_3")
+vs_bot = os.path.join("Training", "Saved Models", "vs_bot_2_8", "best_model")
+vs_bot_save = os.path.join("Training", "Saved Models", "vs_bot_3_2")
+vs_bot_savee = os.path.join("Training", "Saved Models", "vs_bot_3_3")
+vs_bot_save_best = os.path.join("Training", "Saved Models", "vs_bot_3_1_best_model")
 
 env = TicTacToeEnv()
-bot = PPO.load(vs_bot, env)
-model = PPO.load(vs_bot, env, learning_rate = 0.0001) #("MlpPolicy", env, verbose = 1, tensorboard_log=log_path, learning_rate = 0.0001)
+bot = PPO.load(vs_bot_save, env)
+model = PPO.load(vs_bot_save, env, learning_rate = 0.0001) #("MlpPolicy", env, verbose = 1, tensorboard_log=log_path, learning_rate = 0.0001)
 stop_callback = StopTrainingOnRewardThreshold(reward_threshold = 1.5, verbose = 1)
 eval_callback = EvalCallback(env, callback_on_new_best = stop_callback, eval_freq = 10000, best_model_save_path=vs_bot_save_best, verbose=1)
 
-model.learn(1000000, callback = eval_callback)"""
+model.learn(1000000)
+model.save(vs_bot_savee)
 
 
 
 
 
 
-
-
-"""
-model = PPO.load(new_gen_path, env)
-model.learn(100)"""
 
 
 

@@ -1,118 +1,123 @@
+"""
+
+Ficher pour la logique des menus
+
+
+"""
+
 import pygame
-from game import *
-from play import *
+
+class Menu():
+    """
+    Class base menu pour autres menus
+    """
+    def __init__(self, game):
+        self.game = game
+        self.mid_w, self.mid_h = self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2
+        self.run_display   = True
+        self.cursor_rect = pygame.Rect(0, 0, 20, 20)
+        self.offset = - 100
+
+    def draw_cursor(self):
+        """
+        Fonction qui dessine le cursor dans le menu
+        """
+        self.game.draw_text('*', 15, self.cursor_rect.x, self.cursor_rect.y)
+
+    def blit_screen(self):
+        """
+        Fonction qui "refresh" l'ecran
+        """
+        self.game.window.blit(self.game.display, (0, 0))
+        pygame.display.update()
+        self.game.reset_keys()
+
+class MainMenu(Menu):
+    """
+    Class premier menu
+
+    Args:
+        Menu (Object): Class Menu
+    """
+    def __init__(self, game):
+        Menu.__init__(self, game)
+        self.state = "Start"
+        self.startx, self.starty = self.mid_w, self.mid_h + 30
+        self.creditsx, self.creditsy = self.mid_w, self.mid_h + 50
+        self.cursor_rect.midtop = (self.startx + self.offset, self.starty)
+
+    def display_menu(self):
+        """
+        Class qui affice l'ecran et dsesine tous les elements
+        +- Logique du menu
+        """
+        self.run_display = True
+        while self.run_display:
+            self.game.check_events()
+            self.check_input()
+            self.game.display.fill(self.game.BLACK)
+            self.game.draw_text('ALPHA TOE', 20, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 - 20)
+            self.game.draw_text("Challenge", 20, self.startx, self.starty)
+            self.game.draw_text("Credits", 20, self.creditsx, self.creditsy)
+            self.draw_cursor()
+            self.blit_screen()
 
 
+    def move_cursor(self):
+        """
+        Fonction qui gere le changement d'option dans le menu
+        Changement quand on appuye sur une touche
+        """
+        if self.game.DOWN_KEY:
+            if self.state == 'Start':
+                self.cursor_rect.midtop = (self.creditsx + self.offset, self.creditsy)
+                self.state = 'Credits'
+            elif self.state == 'Credits':
+                self.cursor_rect.midtop = (self.startx + self.offset, self.starty)
+                self.state = 'Start'
+        elif self.game.UP_KEY:
+            if self.state == 'Start':
+                self.cursor_rect.midtop = (self.creditsx + self.offset, self.creditsy)
+                self.state = 'Credits'
+            elif self.state == 'Credits':
+                self.cursor_rect.midtop = (self.startx + self.offset, self.starty)
+                self.state = 'Start'
 
-def check_change_mode(pos, current_state):
+    def check_input(self):
 
-    x, y = pos
-
-    if 210 <= x <= 310 and 55<=y<=105:
-        if current_state:
-            return True
-
-    if 520 <= x <= 620 and 55<=y<=105:
-        if not current_state:
-            return True
-
-    return False
-class Game():
-    def __init__(self):
-        pygame.init()
-        self.running, self.playing = True, False
-        self.UP_KEY, self.DOWN_KEY, self.START_KEY, self.BACK_KEY = False, False, False, False
-        self.DISPLAY_W, self.DISPLAY_H = 800, 800
-        self.display = pygame.Surface((self.DISPLAY_W,self.DISPLAY_H))
-        self.window = pygame.display.set_mode([800, 800])
-        self.font_name = '8-BIT WONDER.TTF'
-        #self.font_name = pygame.font.get_default_font()
-        self.BLACK, self.WHITE = (0, 0, 0), (255, 255, 255)
-        self.YELLOW = (240, 226, 123)
-        self.main_menu = MainMenu(self)
-        self.credits = CreditsMenu(self)
-        self.curr_menu = MainMenu(self)
-
-    def game_loop(self):
-        if self.playing:
-            self.window = pygame.display.set_mode([800, 800])
-            obs = env.reset()
-            PLAYER_TURN = True
-            AI_TURN = False
-            DONE = False
-            IMPOSSIBLE = True
-            font = pygame.font.Font(self.font_name,25) 
-            normal = font.render('Normal', True, self.YELLOW)
-            impossible = font.render('Impossible', True, self.YELLOW)
-            self.window.blit(normal, (200, 65))
-            self.window.blit(impossible, (500, 65))
-            
-            while self.playing:
-                
-                if DONE:
-                    obs = env.reset()
-                    DONE = False
-                    AI_TURN = True
-                    PLAYER_TURN = False
-
-                clock.tick(5)
-                env.render()
-                if AI_TURN and not DONE:
-                    if IMPOSSIBLE:
-                        action = ai_action(obs, "IMPOSSIBLE")
-                        print("BEST MOVE BOT")
-                    else:
-                        action, _ = ai_action(obs, "NORMAL")
-    
-                    if env.isValid(action):
-                        obs, reward, DONE, info = env.step(action,1)
-                        print(reward)
-                        AI_TURN = False
-                        PLAYER_TURN = True
-                    env.render()
+        """
+        Fonction qui verifie sur quelle option on est
+        """
+        self.move_cursor()
+        if self.game.START_KEY:
+            if self.state == 'Start':
+                self.game.playing = True
+            elif self.state == 'Credits':
+                self.game.curr_menu = self.game.credits
+            self.run_display = False
 
 
-                if PLAYER_TURN and not DONE:
-                    for event in pygame.event.get():
-                        if event.type == pygame.MOUSEBUTTONDOWN :
-                                pos = pygame.mouse.get_pos()
-                                if check_change_mode(pos, IMPOSSIBLE):
-                                    IMPOSSIBLE = not IMPOSSIBLE
-                                player_move = player_action(pos)
-                                obs, reward, DONE, info = env.step(player_move,2)
-                                AI_TURN = True
-                                PLAYER_TURN = False
-                                env.render()
+class CreditsMenu(Menu):
+    """
+    Class pour Menu Credits
 
-                
+    Args:
+        Menu (Object): Class Menu
+    """
+    def __init__(self, game):
+        Menu.__init__(self, game)
 
-
-
-    def check_events(self):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running, self.playing = False, False
-                self.curr_menu.run_display = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    self.START_KEY = True
-                if event.key == pygame.K_BACKSPACE:
-                    self.BACK_KEY = True
-                if event.key == pygame.K_DOWN:
-                    self.DOWN_KEY = True
-                if event.key == pygame.K_UP:
-                    self.UP_KEY = True
-
-    def reset_keys(self):
-        self.UP_KEY, self.DOWN_KEY, self.START_KEY, self.BACK_KEY = False, False, False, False
-
-    def draw_text(self, text, size, x, y):
-        font = pygame.font.Font(self.font_name,size)
-        text_surface = font.render(text, True, self.YELLOW)
-        text_rect = text_surface.get_rect()
-        text_rect.center = (x,y)
-        self.display.blit(text_surface,text_rect)
-
-
-
-
+    def display_menu(self):
+        """
+        Logique du Menu
+        """
+        self.run_display = True
+        while self.run_display:
+            self.game.check_events()
+            if self.game.START_KEY or self.game.BACK_KEY:
+                self.game.curr_menu = self.game.main_menu
+                self.run_display = False
+            self.game.display.fill(self.game.BLACK)
+            self.game.draw_text('Credits', 20, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 - 20)
+            self.game.draw_text('Made by Ernesto de Menibus', 15, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 + 10)
+            self.blit_screen()
